@@ -1,0 +1,8 @@
+publicHoistPattern:
+  - '*eslint*'
+allowBuilds:
+  '@loongdotjs/electron-winstaller': true
+  better-sqlite3: true
+  bufferutil: true
+  core-js: true
+  utf-8-validate: true

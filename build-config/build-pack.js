@@ -266,6 +266,7 @@ const createTarget = {
  * @param {*} packageType 包类型
  * @param {'onTagOrDraft' | 'always' | 'never'} publishType 发布类型
  */
+// Electron 官方未提供 loong64 版本，使用社区维护的 loong64 构建
 const loong64Options = {
   electronDownload: {
     mirror: 'https://github.com/darkyzhou/electron-loong64/releases/download/',
