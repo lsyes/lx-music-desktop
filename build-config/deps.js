@@ -1,9 +1,38 @@
 const fs = require('fs')
 const path = require('path')
-const bindingFilePath = path.join(__dirname, '../node_modules/better-sqlite3/binding.gyp')
-const bindingBakFilePath = path.join(__dirname, '../node_modules/better-sqlite3/binding.gyp.bak')
-exports.beforePack = async() => {
-  if (!fs.existsSync(bindingFilePath)) return
+const { spawnSync } = require('child_process')
+const sqliteDir = path.join(__dirname, '../node_modules/better-sqlite3')
+const bindingFilePath = path.join(sqliteDir, 'binding.gyp')
+const bindingBakFilePath = path.join(sqliteDir, 'binding.gyp.bak')
+const sqliteLibPath = path.join(sqliteDir, 'build/Release/better_sqlite3.node')
+
+exports.isBuildFromSource = (arch) => arch === 'loong64'
+
+const resolveFrom = (searchPath) => {
+  try {
+    return require.resolve('node-gyp/bin/node-gyp.js', { paths: [searchPath] })
+  } catch (_) {
+    return null
+  }
+}
+
+const resolveNodeGyp = () => resolveFrom(path.join(__dirname, '../node_modules')) ?? resolveFrom(path.join(__dirname, '../node_modules/.pnpm/node_modules'))
+
+const buildSqliteFromSource = () => {
+  if (fs.existsSync(sqliteLibPath)) return
+  console.log('build better-sqlite3 from source...')
+  if (!fs.existsSync(bindingFilePath) && fs.existsSync(bindingBakFilePath)) fs.renameSync(bindingBakFilePath, bindingFilePath)
+  const nodeGyp = resolveNodeGyp()
+  const { status, error } = spawnSync(
+    nodeGyp ? process.execPath : 'node-gyp',
+    [...(nodeGyp ? [nodeGyp] : []), 'rebuild', '--release', '--force_build=1'],
+    { cwd: sqliteDir, stdio: 'inherit' },
+  )
+  if (status !== 0) throw error ?? new Error('Failed to build better-sqlite3 from source')
+}
+
+exports.beforePack = async(buildFromSource = false) => {
+  if (buildFromSource || !fs.existsSync(bindingFilePath)) return
   fs.renameSync(bindingFilePath, bindingBakFilePath)
   // try {
   //   fs.writeFileSync(
@@ -41,6 +70,10 @@ const replaceSqliteLib = async(arch) => {
   await fs.promises.copyFile(filePath, targetPath)
 }
 exports.copyLib = async(arch = process.arch, replaceLocal = false) => {
+  if (exports.isBuildFromSource(arch)) {
+    buildSqliteFromSource()
+    return
+  }
   if (process.platform === 'linux' || replaceLocal) {
     await replaceSqliteLib(arch)
     return

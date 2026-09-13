@@ -1,9 +1,9 @@
 // const fs = require('fs')
 // const fsPromises = require('fs').promises
 // const path = require('path')
-const { Arch } = require('electron-builder')
+const { Arch } = require('@loongdotjs/electron-builder')
 // const nodeAbi = require('node-abi')
-const { beforePack, copyLib } = require('./deps')
+const { beforePack, copyLib, isBuildFromSource } = require('./deps')
 
 // const better_sqlite3_fileNameMap = {
 //   [Arch.x64]: 'linux-x64',
@@ -29,10 +29,12 @@ const archMap = {
   [Arch.ia32]: 'ia32',
   [Arch.arm64]: 'arm64',
   [Arch.armv7l]: 'arm',
+  [Arch.loong64]: 'loong64',
 }
 module.exports = async(context) => {
-  await beforePack()
   const { arch } = context
+  const buildFromSource = isBuildFromSource(archMap[arch])
+  await beforePack(buildFromSource)
   const electronVersion = context.packager?.info?._framework?.version ?? require('../package.json').devDependencies.electron.replace(/^[^\d]*?(\d+)/, '$1')
   await copyLib(archMap[arch], parseInt(electronVersion) == 22)
   // const electronNodeAbi = nodeAbi.getAbi(electronVersion, 'electron')

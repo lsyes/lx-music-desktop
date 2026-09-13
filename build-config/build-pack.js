@@ -1,6 +1,6 @@
 /* eslint-disable no-template-curly-in-string */
 
-const builder = require('electron-builder')
+const builder = require('@loongdotjs/electron-builder')
 const beforePack = require('./build-before-pack')
 const afterPack = require('./build-after-pack')
 
@@ -266,11 +266,18 @@ const createTarget = {
  * @param {*} packageType 包类型
  * @param {'onTagOrDraft' | 'always' | 'never'} publishType 发布类型
  */
+const loong64Options = {
+  electronDownload: {
+    mirror: 'https://github.com/darkyzhou/electron-loong64/releases/download/',
+  },
+}
 const build = async(target, arch, packageType, publishType) => {
+  const buildDependenciesFromSource = arch == 'loong64' || process.arch == 'loong64'
+  const electronDownloadOptions = (target == 'dir' ? process.arch : arch) == 'loong64' ? loong64Options : {}
   if (target == 'dir') {
     await builder.build({
       dir: true,
-      config: { ...options, ...winOptions, ...linuxOptions, ...macOptions },
+      config: { ...options, ...winOptions, ...linuxOptions, ...macOptions, ...electronDownloadOptions, buildDependenciesFromSource },
     })
     return
   }
@@ -283,7 +290,7 @@ const build = async(target, arch, packageType, publishType) => {
     ia32: arch == 'x86' || arch == 'x86_64',
     arm64: arch == 'arm64',
     armv7l: arch == 'armv7l',
-    config: { ...options, ...targetInfo.options },
+    config: { ...options, ...targetInfo.options, ...electronDownloadOptions, buildDependenciesFromSource: arch == 'loong64' },
   })
   // .then((result) => {
   //   console.log(JSON.stringify(result))
